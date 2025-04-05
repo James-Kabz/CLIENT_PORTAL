@@ -64,7 +64,7 @@ export async function GET(req: Request) {
       message: "Email verified successfully",
     })
   } catch (error) {
-    console.error(error)
+    console.error("Verification error:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

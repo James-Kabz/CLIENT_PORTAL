@@ -20,11 +20,11 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex flex-col w-full">
         <DashboardHeader user={session.user} />
         <div className="flex flex-1">
           <DashboardNav user={session.user} />
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-4 mt-12">{children}</main>
         </div>
       </div>
     </SidebarProvider>

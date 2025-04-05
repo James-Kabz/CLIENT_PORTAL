@@ -30,6 +30,8 @@ export async function POST(req: Request) {
       },
     })
 
+    console.log("Organization created:", organization.id)
+
     // Create user
     const user = await db.user.create({
       data: {
@@ -43,15 +45,34 @@ export async function POST(req: Request) {
 
     // Create verification token
     const token = randomUUID()
-    const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-    await db.verificationToken.create({
+    // Check if a token already exists for this user
+    const existingToken = await db.verificationToken.findFirst({
+      where: {
+        identifier: email,
+      },
+    })
+
+    // Delete existing token if it exists
+    if (existingToken) {
+      await db.verificationToken.delete({
+        where: {
+          id: existingToken.id,
+        },
+      })
+    }
+
+    // Create a new token
+    const verificationToken = await db.verificationToken.create({
       data: {
         identifier: email,
         token,
         expires,
       },
     })
+
+    console.log("Verification token created:", verificationToken.id)
 
     // Send verification email
     await sendVerificationEmail(email, name, token)
@@ -63,8 +84,11 @@ export async function POST(req: Request) {
       message: "Verification email sent. Please check your inbox.",
     })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    console.error("Registration error:", error)
+    return NextResponse.json(
+      { message: "Internal server error", error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
   }
 }
 
