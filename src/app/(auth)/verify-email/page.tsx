@@ -9,7 +9,6 @@ import { CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function VerifyEmailPage() {
-//   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 
@@ -26,8 +25,11 @@ export default function VerifyEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        const response = await fetch(`/api/auth/verify?token=${token}`)
+        console.log("Verifying token:", token)
+        const response = await fetch(`/api/auth/verify-email?token=${token}`)
         const data = await response.json()
+
+        console.log("Verification response:", response.status, data)
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to verify email")
@@ -36,8 +38,11 @@ export default function VerifyEmailPage() {
         setIsSuccess(true)
         toast.success("Email verified successfully")
       } catch (error) {
-        console.error(error)
+        console.error("Verification client error:", error)
         setError(error instanceof Error ? error.message : "Failed to verify email")
+        toast.error("Verification failed", {
+          description: error instanceof Error ? error.message : "Failed to verify email",
+        })
       } finally {
         setIsVerifying(false)
       }
@@ -70,9 +75,17 @@ export default function VerifyEmailPage() {
               <XCircle className="h-12 w-12 text-destructive mb-4" />
               <h2 className="text-xl font-semibold">Verification Failed</h2>
               <p className="mt-2 text-muted-foreground">{error || "There was an error verifying your email."}</p>
-              <Button asChild className="mt-6">
-                <Link href="/login">Return to Login</Link>
-              </Button>
+              <div className="mt-6 space-y-4">
+                <Button asChild>
+                  <Link href="/login">Return to Login</Link>
+                </Button>
+                <div>
+                  <p className="text-sm text-muted-foreground mt-4">Didn&apos;``t receive a verification email?</p>
+                  <Button variant="link" asChild>
+                    <Link href="/resend-verification">Resend verification email</Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
