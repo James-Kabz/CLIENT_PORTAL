@@ -11,9 +11,9 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/login",
+    error: "/auth-error",
   },
   providers: [
     GoogleProvider({
@@ -44,6 +44,11 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        // Check if email is verified (except for Google OAuth users who are pre-verified)
+        if (!user.emailVerified) {
+          throw new Error("Please verify your email before logging in")
+        }
+
         const isPasswordValid = await compare(credentials.password, user.password)
 
         if (!isPasswordValid) {
@@ -57,19 +62,21 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           organizationId: user.organizationId,
           organizationSlug: user.organization?.slug,
+          emailVerified: user.emailVerified,
         }
       },
     }),
   ],
   callbacks: {
     async session({ token, session }) {
-      if (session.user && token) {
+      if (token && session.user) {
         session.user.id = token.id as string
         session.user.name = token.name
         session.user.email = token.email
         session.user.role = token.role as string
         session.user.organizationId = token.organizationId as string
         session.user.organizationSlug = token.organizationSlug as string
+        session.user.emailVerified = token.emailVerified as Date | null
       }
       return session
     },
@@ -79,6 +86,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.organizationId = user.organizationId
         token.organizationSlug = user.organizationSlug
+        token.emailVerified = user.emailVerified
       } else if (token.email) {
         // Refresh user data on each token refresh
         const dbUser = await db.user.findUnique({
@@ -95,6 +103,7 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role
           token.organizationId = dbUser.organizationId
           token.organizationSlug = dbUser.organization?.slug
+          token.emailVerified = dbUser.emailVerified
         }
       }
       return token
