@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { FileText, MoreHorizontal, Download, Trash } from "lucide-react"
+import { FileText, MoreHorizontal, Download, Trash, Pencil } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -11,10 +11,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { DocumentModal } from "./document-modal"
 
 interface Document {
   id: string
-  name: string | null
+  name: string
+  description: string | null
+  fileUrl: string
   fileType: string
   fileSize: number
   status: "DRAFT" | "SHARED" | "ARCHIVED"
@@ -29,14 +32,27 @@ interface Document {
   }
 }
 
+// Update the interface to include clients
 interface DocumentListProps {
   documents: Document[]
   userRole: string
+  clients: { id: string; name: string }[]
 }
 
-export function DocumentList({ documents, userRole }: DocumentListProps) {
+// Update the function signature
+export function DocumentList({ documents, userRole, clients }: DocumentListProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const isMobile = !useMediaQuery("(min-width: 768px)")
+
+  // Add state for edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [documentToEdit, setDocumentToEdit] = useState<Document | null>(null)
+
+  // Add function to open edit modal
+  const openEditModal = (doc: Document) => {
+    setDocumentToEdit(doc)
+    setEditModalOpen(true)
+  }
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this document?")) {
@@ -200,6 +216,10 @@ export function DocumentList({ documents, userRole }: DocumentListProps) {
                         <span>Download</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditModal(doc)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>Edit</span>
+                    </DropdownMenuItem>
                     {(userRole === "ADMIN" || userRole === "MANAGER" || doc.uploadedBy.id === "current-user-id") && (
                       <DropdownMenuItem
                         onClick={() => handleDelete(doc.id)}
@@ -217,6 +237,16 @@ export function DocumentList({ documents, userRole }: DocumentListProps) {
           ))}
         </TableBody>
       </Table>
+      {/* Edit Document Modal */}
+      {documentToEdit && (
+        <DocumentModal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          document={documentToEdit}
+          clients={clients}
+          mode="edit"
+        />
+      )}
     </div>
   )
 }
