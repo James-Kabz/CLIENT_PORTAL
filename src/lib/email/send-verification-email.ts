@@ -23,13 +23,22 @@ export async function sendVerificationEmail(email: string, name: string, token: 
           <p>Best regards,<br>The Client Portal Team</p>
         </div>
       `,
-      text: `Hello ${name},\n\nThank you for registering with Client Portal. Please verify your email address by clicking the link below:\n\n${verificationUrl}\n\nIf you didn't create an account, you can safely ignore this email.\n\nThis link will expire in 24 hours.\n\nBest regards,\nThe Client Portal Team`,
+      text: `Hello ${name},
+
+        Thank you for registering with Client Portal. Please verify your email address by clicking the link below:
+
+        ${verificationUrl}
+
+        If you didn't create an account, you can safely ignore this email.
+
+        This link will expire in 24 hours.
+
+        Best regards,
+        The Client Portal Team`,
     })
 
-    console.log("Verification email sent:", info.messageId)
     return { success: true, messageId: info.messageId }
   } catch (error) {
-    console.error("Error sending verification email:", error)
     return { success: false, error }
   }
 }

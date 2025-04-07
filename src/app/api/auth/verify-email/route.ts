@@ -2,70 +2,43 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sendWelcomeEmail } from "@/lib/email/send-welcome-email"
 
-export async function GET(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(req.url)
-    const token = searchParams.get("token")
+    const { token } = await request.json()
 
     if (!token) {
-      return NextResponse.json({ message: "Missing token" }, { status: 400 })
+      return NextResponse.json({ message: "Verification token is required" }, { status: 400 })
     }
 
-    // Find the verification token
-    const verificationToken = await db.verificationToken.findUnique({
+    // Find user with this verification token
+    const user = await db.user.findFirst({
       where: {
-        token,
-      },
-    })
-
-    if (!verificationToken) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 400 })
-    }
-
-    // Check if token is expired
-    if (verificationToken.expires < new Date()) {
-      return NextResponse.json({ message: "Token expired" }, { status: 400 })
-    }
-
-    // Find the user
-    const user = await db.user.findUnique({
-      where: {
-        email: verificationToken.identifier,
+        verificationToken: token,
       },
     })
 
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 })
+      return NextResponse.json({ message: "Invalid or expired verification token" }, { status: 400 })
     }
 
     // Update user's email verification status
     await db.user.update({
-      where: {
-        email: verificationToken.identifier,
-      },
+      where: { id: user.id },
       data: {
         emailVerified: new Date(),
-      },
-    })
-
-    // Delete the verification token
-    await db.verificationToken.delete({
-      where: {
-        id: verificationToken.id,
+        verificationToken: null,
       },
     })
 
     // Send welcome email
-    if (user.name) {
-      await sendWelcomeEmail(verificationToken.identifier, user.name)
+    if (user.name && user.email) {
+      await sendWelcomeEmail(user.email, user.name)
     }
 
-    return NextResponse.json({
-      message: "Email verified successfully",
-    })
+    return NextResponse.json({ message: "Email verified successfully" }, { status: 200 })
   } catch (error) {
-    console.error("Verification error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    console.error("Email verification error:", error)
+    return NextResponse.json({ message: "Something went wrong" }, { status: 500 })
   }
 }
 

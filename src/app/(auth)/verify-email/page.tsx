@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
 import { CheckCircle, XCircle } from "lucide-react"
@@ -9,6 +9,7 @@ import { CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function VerifyEmailPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 
@@ -17,31 +18,39 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token) {
-      setIsVerifying(false)
-      setError("Missing verification token")
-      return
-    }
-
     const verifyEmail = async () => {
+      if (!token) {
+        setError("Verification token is missing")
+        setIsVerifying(false)
+        return
+      }
+
       try {
-        console.log("Verifying token:", token)
-        const response = await fetch(`/api/auth/verify-email?token=${token}`)
+        const response = await fetch("/api/auth/verify-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token }),
+        })
+
         const data = await response.json()
 
-        console.log("Verification response:", response.status, data)
-
         if (!response.ok) {
-          throw new Error(data.message || "Failed to verify email")
+          throw new Error(data.message || "Failed to verify email") // <-- this still reads the message even if token is wrong
         }
 
         setIsSuccess(true)
         toast.success("Email verified successfully")
+
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          router.push("/login")
+        }, 2000)
       } catch (error) {
-        console.error("Verification client error:", error)
-        setError(error instanceof Error ? error.message : "Failed to verify email")
+        setError(error instanceof Error ? error.message : "Verification failed")
         toast.error("Verification failed", {
-          description: error instanceof Error ? error.message : "Failed to verify email",
+          description: error instanceof Error ? error.message : "Something went wrong",
         })
       } finally {
         setIsVerifying(false)
@@ -49,7 +58,7 @@ export default function VerifyEmailPage() {
     }
 
     verifyEmail()
-  }, [token])
+  }, [token, router])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8">
@@ -80,7 +89,7 @@ export default function VerifyEmailPage() {
                   <Link href="/login">Return to Login</Link>
                 </Button>
                 <div>
-                  <p className="text-sm text-muted-foreground mt-4">Didn&apos;``t receive a verification email?</p>
+                  <p className="text-sm text-muted-foreground mt-4">Didn&apos;t receive a verification email?</p>
                   <Button variant="link" asChild>
                     <Link href="/resend-verification">Resend verification email</Link>
                   </Button>

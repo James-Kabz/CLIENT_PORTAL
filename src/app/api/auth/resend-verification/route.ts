@@ -33,39 +33,23 @@ export async function POST(req: Request) {
     }
 
     // Create a verification token
-    const token = randomUUID()
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    const verificationToken = randomUUID()
 
-    // Check if a token already exists for this user
-    const existingToken = await db.verificationToken.findFirst({
+    // Update user with new verification token
+    await db.user.update({
       where: {
-        identifier: email,
+        id: user.id,
       },
-    })
-
-    // Delete existing token if it exists
-    if (existingToken) {
-      await db.verificationToken.delete({
-        where: {
-          id: existingToken.id,
-        },
-      })
-    }
-
-    // Create a new token
-    await db.verificationToken.create({
       data: {
-        identifier: email,
-        token,
-        expires,
+        verificationToken,
       },
     })
 
     // Send verification email
     if (user.name) {
-      await sendVerificationEmail(email, user.name, token)
+      await sendVerificationEmail(email, user.name, verificationToken)
     } else {
-      await sendVerificationEmail(email, "User", token)
+      await sendVerificationEmail(email, "User", verificationToken)
     }
 
     return NextResponse.json({

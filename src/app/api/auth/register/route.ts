@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { hash } from "bcrypt"
-import { randomUUID } from "crypto"
+import crypto from "crypto"
 import { db } from "@/lib/db"
 import { sendVerificationEmail } from "@/lib/email/send-verification-email"
 
@@ -10,9 +10,7 @@ export async function POST(req: Request) {
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
     })
 
     if (existingUser) {
@@ -21,6 +19,18 @@ export async function POST(req: Request) {
 
     // Hash password
     const hashedPassword = await hash(password, 10)
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex")
+
+    // Optional: check for token collision
+    const tokenExists = await db.user.findFirst({
+      where: { verificationToken },
+    })
+
+    if (tokenExists) {
+      return NextResponse.json({ message: "Please try again" }, { status: 500 })
+    }
 
     // Create organization
     const organization = await db.organization.create({
@@ -32,7 +42,7 @@ export async function POST(req: Request) {
 
     console.log("Organization created:", organization.id)
 
-    // Create user
+    // Create user with verificationToken
     const user = await db.user.create({
       data: {
         name,
@@ -40,48 +50,24 @@ export async function POST(req: Request) {
         password: hashedPassword,
         role: "ADMIN",
         organizationId: organization.id,
+        verificationToken,
       },
     })
 
-    // Create verification token
-    const token = randomUUID()
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    console.log("User created:", user.id)
 
-    // Check if a token already exists for this user
-    const existingToken = await db.verificationToken.findFirst({
-      where: {
-        identifier: email,
-      },
-    })
-
-    // Delete existing token if it exists
-    if (existingToken) {
-      await db.verificationToken.delete({
-        where: {
-          id: existingToken.id,
-        },
-      })
-    }
-
-    // Create a new token
-    const verificationToken = await db.verificationToken.create({
-      data: {
-        identifier: email,
-        token,
-        expires,
-      },
-    })
-
-    console.log("Verification token created:", verificationToken.id)
+    // Create verification URL
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${verificationToken}`
 
     // Send verification email
-    await sendVerificationEmail(email, name, token)
+    await sendVerificationEmail(email, name, verificationToken)
 
     return NextResponse.json({
       id: user.id,
       name: user.name,
       email: user.email,
       message: "Verification email sent. Please check your inbox.",
+      ...(process.env.NODE_ENV === "development" && { verificationUrl }),
     })
   } catch (error) {
     console.error("Registration error:", error)
@@ -91,4 +77,3 @@ export async function POST(req: Request) {
     )
   }
 }
-
