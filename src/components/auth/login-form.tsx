@@ -90,6 +90,7 @@ export function LoginForm() {
           {unverifiedEmail && (
             <div className="mt-2">
               <Button
+                type="button"
                 variant="link"
                 className="p-0 h-auto text-sm"
                 onClick={async () => {
@@ -111,9 +112,8 @@ export function LoginForm() {
                       throw new Error("Failed to resend verification email")
                     }
                   } catch (error) {
-                    
                     toast.error("Error", {
-                       description: error instanceof Error ? error.message : "Failed to resend verification email",
+                      description: error instanceof Error ? error.message : "Failed to resend verification email",
                     })
                   } finally {
                     setIsLoading(false)
