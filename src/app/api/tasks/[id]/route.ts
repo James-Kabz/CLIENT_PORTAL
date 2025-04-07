@@ -48,7 +48,7 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -61,7 +61,9 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 
-    const taskId = params.id
+    const { pathname } = new URL(request.url);
+    const taskId = pathname.split("/").pop();
+    if (!taskId) return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
 
     // Verify the task exists and belongs to the user's organization
     const existingTask = await db.task.findFirst({

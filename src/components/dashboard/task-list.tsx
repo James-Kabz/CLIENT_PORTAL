@@ -67,7 +67,7 @@ export function TaskList({ tasks, userRole, users, clients }: TaskListProps) {
 
     try {
       const response = await fetch(`/api/tasks/${id}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },

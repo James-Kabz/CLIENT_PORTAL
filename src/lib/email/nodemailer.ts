@@ -12,12 +12,4 @@ export const transporter = nodemailer.createTransport({
   },
 })
 
-// Verify the transporter configuration
-transporter.verify((error) => {
-  if (error) {
-    console.error("Error verifying mail transporter:", error)
-  } else {
-    console.log("Mail transporter is ready to send emails")
-  }
-})
 

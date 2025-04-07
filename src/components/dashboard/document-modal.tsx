@@ -84,7 +84,7 @@ export function DocumentModal({ open, onOpenChange, document, clients, mode }: D
       }
 
       const url = mode === "create" ? "/api/documents" : `/api/documents/${document?.id}`
-      const method = mode === "create" ? "POST" : "PATCH"
+      const method = mode === "create" ? "POST" : "PUT"
 
       const response = await fetch(url, {
         method,

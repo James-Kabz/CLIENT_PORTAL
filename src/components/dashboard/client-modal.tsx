@@ -51,7 +51,7 @@ export function ClientModal({ open, onOpenChange, client, mode }: ClientModalPro
 
     try {
       const url = mode === "create" ? "/api/clients" : `/api/clients/${client?.id}`
-      const method = mode === "create" ? "POST" : "PATCH"
+      const method = mode === "create" ? "POST" : "PUT"
 
       const response = await fetch(url, {
         method,

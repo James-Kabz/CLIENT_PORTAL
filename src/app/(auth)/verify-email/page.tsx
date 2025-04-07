@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -8,7 +8,19 @@ import { CheckCircle, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
-export default function VerifyEmailPage() {
+// Loading fallback component that matches the existing loading UI
+function EmailVerificationFallback() {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+      <h2 className="text-xl font-semibold">Verifying your email...</h2>
+      <p className="mt-2 text-muted-foreground">Please wait while we verify your email address.</p>
+    </div>
+  )
+}
+
+// Component that uses useSearchParams
+function EmailVerificationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
@@ -61,45 +73,54 @@ export default function VerifyEmailPage() {
   }, [token, router])
 
   return (
+    <>
+      {isVerifying ? (
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+          <h2 className="text-xl font-semibold">Verifying your email...</h2>
+          <p className="mt-2 text-muted-foreground">Please wait while we verify your email address.</p>
+        </div>
+      ) : isSuccess ? (
+        <div className="flex flex-col items-center">
+          <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+          <h2 className="text-xl font-semibold">Email Verified!</h2>
+          <p className="mt-2 text-muted-foreground">Your email has been successfully verified.</p>
+          <Button asChild className="mt-6">
+            <Link href="/login">Continue to Login</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <XCircle className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-xl font-semibold">Verification Failed</h2>
+          <p className="mt-2 text-muted-foreground">{error || "There was an error verifying your email."}</p>
+          <div className="mt-6 space-y-4">
+            <Button asChild>
+              <Link href="/login">Return to Login</Link>
+            </Button>
+            <div>
+              <p className="text-sm text-muted-foreground mt-4">Didn&apos;t receive a verification email?</p>
+              <Button variant="link" asChild>
+                <Link href="/resend-verification">Resend verification email</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-card px-4 py-8 shadow sm:rounded-lg sm:px-10 text-center">
-          {isVerifying ? (
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-              <h2 className="text-xl font-semibold">Verifying your email...</h2>
-              <p className="mt-2 text-muted-foreground">Please wait while we verify your email address.</p>
-            </div>
-          ) : isSuccess ? (
-            <div className="flex flex-col items-center">
-              <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-              <h2 className="text-xl font-semibold">Email Verified!</h2>
-              <p className="mt-2 text-muted-foreground">Your email has been successfully verified.</p>
-              <Button asChild className="mt-6">
-                <Link href="/login">Continue to Login</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <XCircle className="h-12 w-12 text-destructive mb-4" />
-              <h2 className="text-xl font-semibold">Verification Failed</h2>
-              <p className="mt-2 text-muted-foreground">{error || "There was an error verifying your email."}</p>
-              <div className="mt-6 space-y-4">
-                <Button asChild>
-                  <Link href="/login">Return to Login</Link>
-                </Button>
-                <div>
-                  <p className="text-sm text-muted-foreground mt-4">Didn&apos;t receive a verification email?</p>
-                  <Button variant="link" asChild>
-                    <Link href="/resend-verification">Resend verification email</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          <Suspense fallback={<EmailVerificationFallback />}>
+            <EmailVerificationContent />
+          </Suspense>
         </div>
       </div>
     </div>
   )
 }
-
