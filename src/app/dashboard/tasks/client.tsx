@@ -76,13 +76,13 @@ export function TasksPageClient({ initialTasks, users, clients, userRole }: Task
           <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="mt-4">
-          <TaskList tasks={tasks} userRole={userRole} />
+          <TaskList tasks={tasks} userRole={userRole} users={users} clients={clients} />
         </TabsContent>
         <TabsContent value="todo" className="mt-4">
-          <TaskList tasks={todoTasks} userRole={userRole} />
+          <TaskList tasks={todoTasks} userRole={userRole} users={users} clients={clients} />
         </TabsContent>
         <TabsContent value="completed" className="mt-4">
-          <TaskList tasks={completedTasks} userRole={userRole} />
+          <TaskList tasks={completedTasks} userRole={userRole} users={users} clients={clients} />
         </TabsContent>
       </Tabs>
 

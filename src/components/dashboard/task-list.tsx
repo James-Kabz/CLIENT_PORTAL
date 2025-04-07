@@ -17,6 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { TaskModal } from "@/components/dashboard/task-modal"
 
 interface Task {
   id: string
@@ -36,23 +37,37 @@ interface Task {
   } | null
 }
 
+// Update the interface to include users and clients
 interface TaskListProps {
   tasks: Task[]
   userRole: string
+  users: { id: string; name: string | null }[]
+  clients: { id: string; name: string }[]
 }
 
-export function TaskList({ tasks, userRole }: TaskListProps) {
+// Update the function signature
+export function TaskList({ tasks, userRole, users, clients }: TaskListProps) {
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+
+  // Add state for edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
+
+  // Add function to open edit modal
+  const openEditModal = (task: Task) => {
+    setTaskToEdit(task)
+    setEditModalOpen(true)
+  }
 
   const handleStatusChange = async (id: string, status: Task["status"]) => {
     setIsUpdating(id)
 
     try {
       const response = await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -204,7 +219,7 @@ export function TaskList({ tasks, userRole }: TaskListProps) {
                       <span>Add Comment</span>
                     </DropdownMenuItem>
                     {userRole !== "CLIENT" && (
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEditModal(task)}>
                         <Edit className="mr-2 h-4 w-4" />
                         <span>Edit Task</span>
                       </DropdownMenuItem>
@@ -245,6 +260,18 @@ export function TaskList({ tasks, userRole }: TaskListProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Task Modal */}
+      {taskToEdit && (
+        <TaskModal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          task={taskToEdit}
+          users={users} // We'll need to pass users from the parent component
+          clients={clients} // We'll need to pass clients from the parent component
+          mode="edit"
+        />
+      )}
     </>
   )
 }

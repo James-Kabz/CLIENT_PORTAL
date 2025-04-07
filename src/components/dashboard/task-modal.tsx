@@ -30,11 +30,11 @@ interface Client {
 interface Task {
   id?: string
   title: string
-  description?: string
+  description?: string | null
   priority: "LOW" | "MEDIUM" | "HIGH"
   assignedToId?: string
   clientId?: string
-  dueDate?: Date | null
+dueDate?: Date | null| string
 }
 
 interface TaskModalProps {
