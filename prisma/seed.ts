@@ -1,105 +1,137 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client"
+import { hash } from "bcrypt"
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
-  const orgs = await Promise.all([
-    prisma.organization.create({
-      data: {
-        name: 'TechSavvy Innovations',
-        slug: 'techsavvy-innovations',
-      },
-    }),
-    prisma.organization.create({
-      data: {
-        name: 'iHub Networks',
-        slug: 'ihub-networks',
-      },
-    }),
-    prisma.organization.create({
-      data: {
-        name: 'Silicon Savannah Innovations',
-        slug: 'silicon-savannah-innovations',
-      },
-    }),
-  ]);
+  console.log("Starting seeding...")
 
-  await Promise.all([
-    // Users for TechSavvy Innovations
-    prisma.user.create({
+  // Create an organization
+  const organization = await prisma.organization.create({
+    data: {
+      name: "Demo Organization",
+      slug: "demo-organization",
+    },
+  })
+
+  console.log("Created organization:", organization.name)
+
+  // Create admin user
+  const adminPassword = await hash("@kabz123", 10)
+  const admin = await prisma.user.create({
+    data: {
+      name: "Admin User",
+      email: "kabogp@gmail.com",
+      password: adminPassword,
+      role: "ADMIN",
+      emailVerified: new Date(),
+      organizationId: organization.id,
+    },
+  })
+
+  console.log("Created admin user:", admin.email)
+
+  // Create manager user
+  const managerPassword = await hash("@kabz123", 10)
+  const manager = await prisma.user.create({
+    data: {
+      name: "Manager User",
+      email: "manager@example.com",
+      password: managerPassword,
+      role: "MANAGER",
+      emailVerified: new Date(),
+      organizationId: organization.id,
+    },
+  })
+
+  console.log("Created manager user:", manager.email)
+
+  // Create staff user
+  const staffPassword = await hash("@kabz123", 10)
+  const staff = await prisma.user.create({
+    data: {
+      name: "Staff User",
+      email: "staff@example.com",
+      password: staffPassword,
+      role: "STAFF",
+      emailVerified: new Date(),
+      organizationId: organization.id,
+    },
+  })
+
+  console.log("Created staff user:", staff.email)
+
+  // Create clients
+  const clients = await Promise.all(
+    Array.from({ length: 5 }).map(async (_, i) => {
+      const client = await prisma.client.create({
+        data: {
+          name: `Client ${i + 1}`,
+          email: `client${i + 1}@example.com`,
+          phone: `+1 555-${String(i + 1).padStart(3, "0")}-${String(i + 1).padStart(4, "0")}`,
+          address: `${i + 100} Main St, City, State, 12345`,
+          notes: `Notes for Client ${i + 1}`,
+          organizationId: organization.id,
+        },
+      })
+      return client
+    }),
+  )
+
+  console.log(`Created ${clients.length} clients`)
+
+  // Create client user accounts
+  for (const client of clients) {
+    const clientPassword = await hash("@kabz123", 10)
+    const clientUser = await prisma.user.create({
       data: {
-        name: 'James Kabogo',
-        email: 'kabogp@gmail.com',
-        password: '@kabz123',
-        role: 'ADMIN',
-        organizationId: orgs[0].id,
+        name: client.name,
+        email: client.email,
+        password: clientPassword,
+        role: "CLIENT",
+        emailVerified: new Date(),
+        organizationId: organization.id,
       },
-    }),
-    prisma.user.create({
-      data: {
-        name: 'Wanjiru Njoroge',
-        email: 'wanjiru@gmail.com',
-        password: 'password123',
-        role: 'STAFF',
-        organizationId: orgs[0].id,
-      },
-    }),
+    })
+    console.log("Created client user:", clientUser.email)
+  }
 
-    // Users for iHub Networks
-    prisma.user.create({
-      data: {
-        name: 'Akinyi Otieno',
-        email: 'akinyi@gmail.com',
-        password: 'password123',
-        role: 'MANAGER',
-        organizationId: orgs[1].id,
-      },
-    }),
+  // Create tasks
+  const priorities = ["LOW", "MEDIUM", "HIGH"]
+  const statuses = ["TODO", "IN_PROGRESS", "COMPLETED"]
 
-    // Users for Silicon Savannah Innovations
-    prisma.user.create({
-      data: {
-        name: 'Cherono Kamau',
-        email: 'cherono@siliconsavannah.co.ke',
-        password: 'password123',
-        role: 'ADMIN',
-        organizationId: orgs[2].id,
-      },
+  const tasks = await Promise.all(
+    Array.from({ length: 10 }).map(async (_, i) => {
+      const task = await prisma.task.create({
+        data: {
+          title: `Task ${i + 1}`,
+          description: `Description for Task ${i + 1}`,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          priority: priorities[i % 3] as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          status: statuses[i % 3] as any,
+          dueDate: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000), // Due in i+1 days
+          organizationId: organization.id,
+          createdById: admin.id,
+          assignedToId: [admin.id, manager.id, staff.id][i % 3],
+          clientId: i % 2 === 0 ? clients[i % clients.length].id : null,
+        },
+      })
+      return task
     }),
-  ]);
+  )
 
-  await Promise.all([
-    // Clients for TechSavvy Innovations
-    prisma.client.createMany({
-      data: [
-        { name: 'Nduku Mwangi', email: 'nduku@techsavvy.co.ke', organizationId: orgs[0].id },
-        { name: 'Mutiso Kibwana', email: 'mutiso@techsavvy.co.ke', organizationId: orgs[0].id },
-      ],
-    }),
+  console.log(`Created ${tasks.length} tasks`)
 
-    // Clients for iHub Networks
-    prisma.client.createMany({
-      data: [
-        { name: 'Akoth Wambua', email: 'akoth@ihub.co.ke', organizationId: orgs[1].id },
-      ],
-    }),
-
-    // Clients for Silicon Savannah Innovations
-    prisma.client.createMany({
-      data: [
-        { name: 'Nyambura Njeri', email: 'nyambura@siliconsavannah.co.ke', organizationId: orgs[2].id },
-        { name: 'Auma Odinga', email: 'auma@siliconsavannah.co.ke', organizationId: orgs[2].id },
-      ],
-    }),
-  ]);
+  console.log("Seeding completed successfully!")
 }
 
 main()
-  .then(() => {
-    console.log('✅ Seed data created!');
-    return prisma.$disconnect();
-  })
   .catch((e) => {
-    console.error(e);
-    return prisma.$disconnect();
-  });
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
+
