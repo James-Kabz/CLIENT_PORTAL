@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth/auth-options"
 import { db } from "@/lib/db"
 
 
-export async function PATCH(request: Request) {
+export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions)
 
